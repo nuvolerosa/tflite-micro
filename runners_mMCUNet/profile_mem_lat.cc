@@ -40,94 +40,97 @@ limitations under the License.
 #include "models/mars_e300_compressed_tcn.h"
 #include "models/mars_e300_compressed_srnn.h"
 
-int main() {
-  printf("TFLM profiling runner\n");
-  return 0;
+// ###################################################
+// namespaces
+// ###################################################
+
+namespace {
+  // Create alias for the class MicroMutableOpResolver
+  using OpResolver = tflite::MicroMutableOpResolver<19>;
+  // Registering minimal set of operations 
+  TfLiteStatus RegisterOps(OpResolver& op_resolver) {
+    TF_LITE_ENSURE_STATUS(op_resolver.AddFullyConnected());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddConv2D());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddAveragePool2D());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddAdd());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddRelu());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddMul());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddMean());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddSoftmax());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddReshape());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddStridedSlice()); 
+    TF_LITE_ENSURE_STATUS(op_resolver.AddConcatenation()); 
+    TF_LITE_ENSURE_STATUS(op_resolver.AddSum());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddUnpack());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddSplit());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddLogistic());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddTanh());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddPack());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddPad());
+    TF_LITE_ENSURE_STATUS(op_resolver.AddQuantize());
+    return kTfLiteOk;
+  }
+} 
+
+// ###################################################
+// Define functions
+// ###################################################
+
+// Func (1): generate random input tensors (type:int8, size: 32x32x3)
+void GenerateRandomTensor(int8_t* tensor) {
+
+  // Create a random number generator for int8 values between -127 and 128
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int> dist(-127, 128);
+  // Fill the tensor with random values
+  for (int i = 0; i < 32 * 64 * 3; ++i) {
+      tensor[i] = static_cast<int8_t>(dist(gen));  
+  }
+
 }
 
+// Func (2): profiling memory usage
+TfLiteStatus ProfileMemoryAndLatency(const uint8_t* g_model_data, int8_t* input_tensor) {
 
+  // Profiler and Ops resolver initialization
+  tflite::MicroProfiler profiler;
+  OpResolver op_resolver;
+  TF_LITE_ENSURE_STATUS(RegisterOps(op_resolver));
+  // Defining Arena size by implementing 512kb constraint
+  constexpr int kTensorArenaSize = 512 * 1024;  
+  uint8_t tensor_arena[kTensorArenaSize];
+  // Defining space reserved to resource variables (WARNING: check what this is exactely and how to optimise)
+  constexpr int kNumResourceVariables = 1000; 
+  // Initialising Arena space allocator
+  tflite::RecordingMicroAllocator* allocator(
+    tflite::RecordingMicroAllocator::Create(tensor_arena, kTensorArenaSize));
+  // Initializing model interpreter 
+  tflite::RecordingMicroInterpreter interpreter(
+    tflite::GetModel(g_model_data), op_resolver, allocator,
+    tflite::MicroResourceVariables::Create(allocator, kNumResourceVariables),
+    &profiler);
+  // Allocating memory
+  TF_LITE_ENSURE_STATUS(interpreter.AllocateTensors()); 
+  // Checking that the model intakes 1 input tensor
+  TFLITE_CHECK_EQ(interpreter.inputs_size(), 1);        
+  // Input is a pointer to the model input tensor (assumed to be type int8)
+  int8_t* input = interpreter.input(0)->data.int8;
+  // Check input is pointing "at something"
+  TFLITE_CHECK_NE(input, nullptr);
+  // Populate the input tensor with the generated random input data
+  for (int i = 0; i < 32 * 64 * 3; ++i) {
+      input[i] = input_tensor[i];  
+  }
+  // Running one inference step
+  TF_LITE_ENSURE_STATUS(interpreter.Invoke());
+  MicroPrintf("");  // Print an empty new line
+  profiler.LogTicksPerTagCsv();
+  MicroPrintf("");  // Print an empty new line
+  interpreter.GetMicroAllocator().PrintAllocations();
 
-
-// // ###################################################
-// // namespaces
-// // ###################################################
-
-// namespace {
-//   // Create alias for the class MicroMutableOpResolver
-//   using OpResolver = tflite::MicroMutableOpResolver<8>;
-//   // Registering minimal set of operations 
-//   TfLiteStatus RegisterOps(OpResolver& op_resolver) {
-//     TF_LITE_ENSURE_STATUS(op_resolver.AddFullyConnected());
-//     TF_LITE_ENSURE_STATUS(op_resolver.AddConv2D());
-//     TF_LITE_ENSURE_STATUS(op_resolver.AddAveragePool2D());
-//     TF_LITE_ENSURE_STATUS(op_resolver.AddAdd());
-//     TF_LITE_ENSURE_STATUS(op_resolver.AddRelu());
-//     TF_LITE_ENSURE_STATUS(op_resolver.AddMul());
-//     TF_LITE_ENSURE_STATUS(op_resolver.AddMean());
-//     TF_LITE_ENSURE_STATUS(op_resolver.AddSoftmax());
-//     return kTfLiteOk;
-//   }
-// } 
-
-// // ###################################################
-// // Define functions
-// // ###################################################
-
-// // Func (1): generate random input tensors (type:int8, size: 32x32x3)
-// void GenerateRandomTensor(int8_t* tensor) {
-
-//   // Create a random number generator for int8 values between -127 and 128
-//   std::random_device rd;
-//   std::mt19937 gen(rd());
-//   std::uniform_int_distribution<int> dist(-127, 128);
-//   // Fill the tensor with random values
-//   for (int i = 0; i < 32 * 32 * 3; ++i) {
-//       tensor[i] = static_cast<int8_t>(dist(gen));  
-//   }
-
-// }
-
-// // Func (2): profiling memory usage
-// TfLiteStatus ProfileMemoryAndLatency(const uint8_t* g_model_data, int8_t* input_tensor) {
-
-//   // Profiler and Ops resolver initialization
-//   tflite::MicroProfiler profiler;
-//   OpResolver op_resolver;
-//   TF_LITE_ENSURE_STATUS(RegisterOps(op_resolver));
-//   // Defining Arena size by implementing 256kb constraint
-//   constexpr int kTensorArenaSize = 256 * 1024;  
-//   uint8_t tensor_arena[kTensorArenaSize];
-//   // Defining space reserved to resource variables (WARNING: check what this is exactely and how to optimise)
-//   constexpr int kNumResourceVariables = 1000; 
-//   // Initialising Arena space allocator
-//   tflite::RecordingMicroAllocator* allocator(
-//     tflite::RecordingMicroAllocator::Create(tensor_arena, kTensorArenaSize));
-//   // Initializing model interpreter 
-//   tflite::RecordingMicroInterpreter interpreter(
-//     tflite::GetModel(g_model_data), op_resolver, allocator,
-//     tflite::MicroResourceVariables::Create(allocator, kNumResourceVariables),
-//     &profiler);
-//   // Allocating memory
-//   TF_LITE_ENSURE_STATUS(interpreter.AllocateTensors()); 
-//   // Checking that the model intakes 1 input tensor
-//   TFLITE_CHECK_EQ(interpreter.inputs_size(), 1);        
-//   // Input is a pointer to the model input tensor (assumed to be type int8)
-//   int8_t* input = interpreter.input(0)->data.int8;
-//   // Check input is pointing "at something"
-//   TFLITE_CHECK_NE(input, nullptr);
-//   // Populate the input tensor with the generated random input data
-//   for (int i = 0; i < 32 * 32 * 3; ++i) {
-//       input[i] = input_tensor[i];  
-//   }
-//   // Running one inference step
-//   TF_LITE_ENSURE_STATUS(interpreter.Invoke());
-//   MicroPrintf("");  // Print an empty new line
-//   profiler.LogTicksPerTagCsv();
-//   MicroPrintf("");  // Print an empty new line
-//   interpreter.GetMicroAllocator().PrintAllocations();
-
-//   return kTfLiteOk;
-// }
+  return kTfLiteOk;
+}
 
 // // Func (3): get input, output, ops type and ops params sequentially during inference
 // TfLiteStatus InferenceHistory4MACs(const uint8_t* g_model_data, int8_t* input_tensor) {
@@ -164,38 +167,27 @@ int main() {
 
 // }
 
-// int main(){
-//   tflite::InitializeTarget();
+int main(){
+  tflite::InitializeTarget();
 
-//   // Generate random input
-//   int8_t tensor[1 * 32 * 32 * 3];
-//   GenerateRandomTensor(tensor);
+  // Generate random input
+  int8_t tensor[1 * 32 * 64 * 3];
+  GenerateRandomTensor(tensor);
 
-//   // Latency Profiling (raw data only)
-//   InferenceHistory4MACs(g_quant_model_0_model_data, tensor);
-//   // InferenceHistory4MACs(g_quant_model_1_model_data, tensor);
-//   // InferenceHistory4MACs(g_quant_model_2_model_data, tensor);
-//   // InferenceHistory4MACs(g_quant_model_3_model_data, tensor);
-//   // InferenceHistory4MACs(g_quant_model_4_model_data, tensor);
-//   // InferenceHistory4MACs(g_quant_model_5_model_data, tensor);
-//   // InferenceHistory4MACs(g_quant_model_6_model_data, tensor);
-//   // InferenceHistory4MACs(g_quant_model_7_model_data, tensor);
-//   // InferenceHistory4MACs(g_quant_model_8_model_data, tensor);
-//   // InferenceHistory4MACs(g_quant_model_9_model_data, tensor);
+  // Latency Profiling (raw data only)
+  // InferenceHistory4MACs(g_quant_model_0_model_data, tensor);
 
-//   // Memory Profiling
-//   TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(g_quant_model_0_model_data, tensor)); //no core dump
-//   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(g_quant_model_1_model_data, tensor)); // no core dump
-//   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(g_quant_model_2_model_data, tensor)); // no core dump
-//   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(g_quant_model_3_model_data, tensor)); // no core dump
-//   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(g_quant_model_4_model_data, tensor)); // no core dump
-//   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(g_quant_model_5_model_data, tensor)); // no core dump
-//   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(g_quant_model_6_model_data, tensor)); // no core dump
-//   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(g_quant_model_7_model_data, tensor)); // no core dump
-//   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(g_quant_model_8_model_data, tensor)); // no core dump
-//   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(g_quant_model_9_model_data, tensor)); // core dumped
+  // Memory Profiling
+  TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_compressed_lstm, tensor)); //no core dump
+  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_compressed_tcn, tensor));
+  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_compressed_srnn, tensor));
+  return 0;
+
+}
+
+// int main() {
+//   printf("TFLM profiling runner\n");
 //   return 0;
-
 // }
 
 
