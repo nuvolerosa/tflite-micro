@@ -35,6 +35,8 @@ limitations under the License.
 #include "tensorflow/lite/micro/micro_profiler.h"
 #include "tensorflow/lite/micro/recording_micro_interpreter.h"
 #include "tensorflow/lite/micro/system_setup.h"
+// macs estimator
+#include "runners_mMCUNet/macs_estimator.h"
 // models data
 #include "models/mars_e300_compressed_lstm.h"
 #include "models/mars_e300_compressed_tcn.h"
@@ -122,6 +124,11 @@ TfLiteStatus ProfileMemoryAndLatency(const uint8_t* g_model_data, int8_t* input_
   for (int i = 0; i < 32 * 64 * 3; ++i) {
       input[i] = input_tensor[i];  
   }
+  // Estimate MACs using the flatbuffer model.
+  const tflite::Model* model = tflite::GetModel(g_model_data);
+  const uint64_t macs = EstimateModelMacs(model);
+  MicroPrintf("Estimated MACs per inference: %llu",
+              static_cast<unsigned long long>(macs));
   // Running one inference step
   TF_LITE_ENSURE_STATUS(interpreter.Invoke());
   MicroPrintf("");  // Print an empty new line
@@ -178,9 +185,9 @@ int main(){
   // InferenceHistory4MACs(g_quant_model_0_model_data, tensor);
 
   // Memory Profiling
-  TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_compressed_lstm, tensor)); //no core dump
+  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_compressed_lstm, tensor)); //no core dump
   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_compressed_tcn, tensor));
-  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_compressed_srnn, tensor));
+  TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_compressed_srnn, tensor));
   return 0;
 
 }

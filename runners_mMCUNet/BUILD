@@ -12,6 +12,15 @@ cc_library(
     ],
 )
 
+cc_library(
+    name = "macs_estimator",
+    srcs = ["macs_estimator.cc"],
+    hdrs = ["macs_estimator.h"],
+    deps = [
+        "//tensorflow/lite/schema:schema_utils",
+    ],
+)
+
 cc_binary(
     name = "profile_mem_lat",
     srcs = ["profile_mem_lat.cc"],
@@ -24,5 +33,6 @@ cc_binary(
         "//tensorflow/lite/micro:recording_allocators",     # recording_micro_interpreter.h
         "//tensorflow/lite/micro:system_setup",             # system_setup.h
         ":mmcunet_models",                                  # generated model data
+        ":macs_estimator",
     ],
 )
