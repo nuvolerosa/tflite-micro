@@ -38,9 +38,18 @@ limitations under the License.
 // macs estimator
 #include "runners_mMCUNet/macs_estimator.h"
 // models data
-#include "models/mars_e300_compressed_lstm.h"
-#include "models/mars_e300_compressed_tcn.h"
-#include "models/mars_e300_compressed_srnn.h"
+#include "models/mars_e300_comp_bgaf_watt_lstm.h"
+#include "models/mars_e300_comp_bgf_watt_lstm.h"
+#include "models/mars_e300_comp_gf_watt_lstm.h"
+#include "models/mars_e300_comp_gf_woatt_lstm.h"
+#include "models/mars_e300_comp_bgaf_watt_tcn.h"
+#include "models/mars_e300_comp_bgf_watt_tcn.h"
+#include "models/mars_e300_comp_gf_watt_tcn.h"
+#include "models/mars_e300_comp_gf_woatt_tcn.h"
+#include "models/mars_e300_comp_bgaf_watt_srnn.h"
+#include "models/mars_e300_comp_bgf_watt_srnn.h"
+#include "models/mars_e300_comp_gf_watt_srnn.h"
+#include "models/mars_e300_comp_gf_woatt_srnn.h"
 
 // ###################################################
 // namespaces
@@ -139,110 +148,21 @@ TfLiteStatus ProfileMemoryAndLatency(const uint8_t* g_model_data, int8_t* input_
   return kTfLiteOk;
 }
 
-// // Func (3): get input, output, ops type and ops params sequentially during inference
-// TfLiteStatus InferenceHistory4MACs(const uint8_t* g_model_data, int8_t* input_tensor) {
-
-//   // Initialising op resolver
-//   OpResolver op_resolver;
-//   TF_LITE_ENSURE_STATUS(RegisterOps(op_resolver));
-//   // Defining Arena size by implementing 256kb constraint
-//   constexpr int kTensorArenaSize = 256 * 1024;  
-//   uint8_t tensor_arena[kTensorArenaSize];
-//   constexpr int kNumResourceVariables = 1000; 
-//   // Initialising Arena space allocator
-//   tflite::RecordingMicroAllocator* allocator(
-//     tflite::RecordingMicroAllocator::Create(tensor_arena, kTensorArenaSize));
-//   // Initializing model interpreter 
-//   tflite::RecordingMicroInterpreter interpreter(
-//     tflite::GetModel(g_model_data), op_resolver, allocator,
-//     tflite::MicroResourceVariables::Create(allocator, kNumResourceVariables));
-//   // Allocating memory
-//   TF_LITE_ENSURE_STATUS(interpreter.AllocateTensors()); 
-//   // Checking that the model intakes 1 input tensor
-//   TFLITE_CHECK_EQ(interpreter.inputs_size(), 1);        
-//   // Input is a pointer to the model input tensor (assumed to be type int8)
-//   int8_t* input = interpreter.input(0)->data.int8;
-//   // Check input is pointing "at something"
-//   TFLITE_CHECK_NE(input, nullptr);
-//   // Populate the input tensor with the generated random input data
-//   for (int i = 0; i < 32 * 32 * 3; ++i) {
-//       input[i] = input_tensor[i];  
-//   }
-//   // Running one inference step
-//   TF_LITE_ENSURE_STATUS(interpreter.Invoke());
-//   return kTfLiteOk;
-
-// }
-
 int main(){
   tflite::InitializeTarget();
 
   // Generate random input
-  int8_t tensor[1 * 32 * 64 * 3];
+  int8_t tensor[1 * 32 * 64 * 6];
   GenerateRandomTensor(tensor);
 
   // Latency Profiling (raw data only)
   // InferenceHistory4MACs(g_quant_model_0_model_data, tensor);
 
   // Memory Profiling
-  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_compressed_lstm, tensor)); //no core dump
+  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_compressed_lstm, tensor)); 
   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_compressed_tcn, tensor));
-  TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_compressed_srnn, tensor));
+  TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_comp_gf_woatt_tcn, tensor));
   return 0;
 
 }
 
-// int main() {
-//   printf("TFLM profiling runner\n");
-//   return 0;
-// }
-
-
-// // TBD: FUNC TO RUN INFERENCE AND CHECK ACCURACY
-// // TfLiteStatus LoadQuantModelAndPerformInference(int8_t* input_tensor) {
-
-// //   // Map the model into a usable data structure. This doesn't involve any
-// //   // copying or parsing, it's a very lightweight operation.
-// //   const tflite::Model* model =
-// //       ::tflite::GetModel(g_quant_model_5_model_data);
-// //   TFLITE_CHECK_EQ(model->version(), TFLITE_SCHEMA_VERSION);
-
-// //   OpResolver op_resolver;
-// //   TF_LITE_ENSURE_STATUS(RegisterOps(op_resolver));
-
-// //   // Arena size just a round number. The exact arena usage can be determined
-// //   // using the RecordingMicroInterpreter.
-// //   constexpr int kTensorArenaSize = 160 * 1024; // ~62% of Max MCU memory (256kb)
-// //   uint8_t tensor_arena[kTensorArenaSize];
-
-// //   tflite::MicroInterpreter interpreter(model, op_resolver, tensor_arena,
-// //                                        kTensorArenaSize);
-// //   TF_LITE_ENSURE_STATUS(interpreter.AllocateTensors());
-
-// //   // Retrive the memory space for one input tensor of the model
-// //   TfLiteTensor* input = interpreter.input(0);
-// //   TFLITE_CHECK_NE(input, nullptr);
-// //   // Retrive the memory space for one output tensor of the model
-// //   TfLiteTensor* output = interpreter.output(0);
-// //   TFLITE_CHECK_NE(output, nullptr);
-
-// //   // WARNING: they are all zero... why?
-// //   // Extract information about the quantization parameters of the output tensor
-// //   int8_t output_scale = output->params.scale;
-// //   int8_t output_zero_point = output->params.zero_point;
-// //   // Use the scale and zero-point for something
-// //   MicroPrintf("Output scale: %f, Zero point: %d\n", output_scale, output_zero_point);
-
-// //   // Make predictions
-// //   // Populate the input tensor with the generated random input data
-// //   int8_t* input_data = interpreter.input(0)->data.int8;
-// //   for (int i = 0; i < 1 * 32 * 32 * 3; ++i) {
-// //       input_data[i] = input_tensor[i];  
-// //   }
-// //   // Running one inference step
-// //   TF_LITE_ENSURE_STATUS(interpreter.Invoke());
-// //   int8_t y_pred = output->data.int8[0];
-// //   MicroPrintf("Prediction: %d\n", y_pred);
-
-// //   return kTfLiteOk;
-// // }

@@ -61,17 +61,19 @@ int64_t EstimateFullyConnectedMacs(const ::tflite::Tensor* input,
     return 0;
   }
 
-  const int64_t input_elems = NumElements(input);
+  // weights shape: [output_dim, input_dim]
+  const int64_t input_dim = GetDim(weights, 1, 1);
+  const int64_t output_dim = GetDim(weights, 0, 1);
+
+  // number of output elements
   const int64_t output_elems = NumElements(output);
 
-  // Debug prints for FC layer dimensions.
-  std::printf("FullyConnected input_elems: %lld\n",
-              static_cast<long long>(input_elems));
+  std::printf("FullyConnected input_dim: %lld\n",
+              static_cast<long long>(input_dim));
   std::printf("FullyConnected output_elems: %lld\n",
               static_cast<long long>(output_elems));
 
-  // Each output element is roughly a dot-product over the input.
-  return input_elems * output_elems;
+  return output_elems * input_dim;
 }
 
 // Estimates MACs for reduction ops like MEAN or SUM.
