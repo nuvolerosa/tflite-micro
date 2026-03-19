@@ -25,6 +25,7 @@ limitations under the License.
 #include <cstring>
 #include <fstream>
 #include <sstream>
+#include <string>    
 // tflite libs
 #include "tensorflow/lite/core/c/common.h"
 #include "tensorflow/lite/schema/schema_generated.h"
@@ -148,6 +149,7 @@ TfLiteStatus ProfileMemoryAndLatency(const uint8_t* g_model_data, int8_t* input_
   return kTfLiteOk;
 }
 
+
 int main(){
   tflite::InitializeTarget();
 
@@ -155,13 +157,22 @@ int main(){
   int8_t tensor[1 * 32 * 64 * 6];
   GenerateRandomTensor(tensor);
 
-  // Latency Profiling (raw data only)
-  // InferenceHistory4MACs(g_quant_model_0_model_data, tensor);
+  std::string log_folder = "/home/nrosi/GitHub/mMCUNet/externals/tflite-micro/runners_mMCUNet/logs/";
+  std::string log_path;
 
-  // Memory Profiling
-  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_compressed_lstm, tensor)); 
-  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_compressed_tcn, tensor));
-  TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_comp_gf_woatt_tcn, tensor));
+  // Lateny and Memory Profiling
+  log_path = log_folder + "mars_e300_comp_bgf_watt_lstm.txt";
+  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency( mars_e300_comp_bgf_watt_lstm, tensor));
+  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_comp_bgf_watt_tcn, tensor));
+  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency( mars_e300_comp_bgf_watt_srnn, tensor));
+
+  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_comp_gf_watt_lstm, tensor));
+  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_comp_gf_watt_tcn, tensor));
+  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_comp_gf_watt_srnn, tensor));
+
+  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_comp_gf_woatt_lstm, tensor));
+  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_comp_gf_woatt_tcn, tensor));
+  TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_comp_gf_woatt_srnn, tensor));
   return 0;
 
 }

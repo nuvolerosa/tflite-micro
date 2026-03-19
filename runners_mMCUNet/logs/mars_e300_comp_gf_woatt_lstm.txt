@@ -1,0 +1,2 @@
+MACs/inference (adim): 11489280
+Total Arena allocation (bytes): 367968
