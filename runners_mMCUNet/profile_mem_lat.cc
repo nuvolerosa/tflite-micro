@@ -51,6 +51,7 @@ limitations under the License.
 #include "models/mars_e300_comp_bgf_watt_srnn.h"
 #include "models/mars_e300_comp_gf_watt_srnn.h"
 #include "models/mars_e300_comp_gf_woatt_srnn.h"
+#include "models/mymodel_int8.h"
 
 // ###################################################
 // namespaces
@@ -161,7 +162,7 @@ int main(){
   std::string log_path;
 
   // Lateny and Memory Profiling
-  log_path = log_folder + "mars_e300_comp_bgf_watt_lstm.txt";
+  // log_path = log_folder + "mars_e300_comp_bgf_watt_lstm.txt";
   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency( mars_e300_comp_bgf_watt_lstm, tensor));
   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_comp_bgf_watt_tcn, tensor));
   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency( mars_e300_comp_bgf_watt_srnn, tensor));
@@ -172,7 +173,9 @@ int main(){
 
   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_comp_gf_woatt_lstm, tensor));
   // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_comp_gf_woatt_tcn, tensor));
-  TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_comp_gf_woatt_srnn, tensor));
+  // TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mars_e300_comp_gf_woatt_srnn, tensor));
+
+  TF_LITE_ENSURE_STATUS(ProfileMemoryAndLatency(mymodel_int8, tensor));
   return 0;
 
 }

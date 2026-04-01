@@ -13,6 +13,7 @@ cc_library(
         "models/mars_e300_comp_bgf_watt_srnn.c",
         "models/mars_e300_comp_gf_watt_srnn.c",
         "models/mars_e300_comp_gf_woatt_srnn.c",
+        "models/mymodel_int8.c",
     ],
     hdrs = [
         "models/mars_e300_comp_bgaf_watt_lstm.h",
@@ -27,6 +28,7 @@ cc_library(
         "models/mars_e300_comp_bgf_watt_srnn.h",
         "models/mars_e300_comp_gf_watt_srnn.h",
         "models/mars_e300_comp_gf_woatt_srnn.h",
+        "models/mymodel_int8.h",
     ],
 )
 
